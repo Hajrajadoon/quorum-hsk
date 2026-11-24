@@ -1,0 +1,24 @@
+{
+  "name": "quorum-agent",
+  "version": "1.0.0",
+  "description": "QUORUM: an AI trading council on HSK Chain that can't go rogue. Agent + dashboard.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "demo": "node src/index.mjs --sim",
+    "live": "node src/index.mjs --live",
+    "start": "node src/index.mjs",
+    "test": "node --test test/core.test.mjs",
+    "build:standalone": "node scripts/build-standalone.mjs"
+  },
+  "dependencies": {
+    "ethers": "^6.13.4"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  }
+}

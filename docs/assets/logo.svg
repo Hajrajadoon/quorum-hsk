@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="520" height="120" role="img" aria-label="QUORUM">
+  <defs>
+    <radialGradient id="a" cx="35%" cy="35%" r="75%"><stop offset="0" stop-color="#8fb0ff"/><stop offset="1" stop-color="#3d6cf0"/></radialGradient>
+    <radialGradient id="n" cx="35%" cy="35%" r="75%"><stop offset="0" stop-color="#e0bcff"/><stop offset="1" stop-color="#9a52f0"/></radialGradient>
+    <radialGradient id="s" cx="35%" cy="35%" r="75%"><stop offset="0" stop-color="#8af5d4"/><stop offset="1" stop-color="#14b386"/></radialGradient>
+    <linearGradient id="w" x1="0" x2="1"><stop offset="0" stop-color="#9db8ff"/><stop offset=".55" stop-color="#d9b2ff"/><stop offset="1" stop-color="#7ef2cf"/></linearGradient>
+  </defs>
+  <g fill-opacity=".92">
+    <circle cx="38" cy="74" r="28" fill="url(#a)"/>
+    <circle cx="82" cy="74" r="28" fill="url(#n)"/>
+    <circle cx="60" cy="36" r="28" fill="url(#s)"/>
+  </g>
+  <circle cx="60" cy="62" r="9" fill="#060a13"/>
+  <circle cx="60" cy="62" r="3.5" fill="#fff"/>
+  <text x="132" y="78" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="52" font-weight="800" letter-spacing="14" fill="url(#w)">QUORUM</text>
+</svg>

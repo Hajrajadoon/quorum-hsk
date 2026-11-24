@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QUORUM · An AI trading council that can't go rogue</title>
+<meta name="description" content="QUORUM is an autonomous AI trading agent for HSK Chain. Three AI agents must agree before any trade, a vault contract enforces your risk limits, and every decision's reasoning is committed on-chain." />
+<link rel="icon" href="assets/logo-mark.svg" type="image/svg+xml" />
+<style>
+:root{--bg:#060a13;--panel:rgba(14,20,36,.78);--line:#1b2438;--line2:#26324c;--text:#e8edf7;--muted:#8a94aa;--dim:#5b6680;--green:#22d3a0;--red:#ff5c7a;--amber:#ffb547;--blue:#5b8cff;--purple:#c17bff;--cyan:#3fd5ff;--mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,Consolas,monospace;--sans:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:-2;background:radial-gradient(900px 600px at 8% -5%,rgba(91,140,255,.18),transparent 60%),radial-gradient(800px 600px at 95% 5%,rgba(193,123,255,.15),transparent 60%),radial-gradient(1000px 700px at 50% 110%,rgba(34,211,160,.10),transparent 60%)}
+body::after{content:"";position:fixed;inset:0;z-index:-1;opacity:.35;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse at center,#000 30%,transparent 80%)}
+a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+.mono{font-family:var(--mono)}
+.grad{background:linear-gradient(90deg,#9db8ff,#d9b2ff 55%,#7ef2cf);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* nav */
+nav{position:sticky;top:0;z-index:20;backdrop-filter:blur(12px);background:rgba(6,10,19,.7);border-bottom:1px solid rgba(27,36,56,.6)}
+nav .wrap{display:flex;align-items:center;gap:28px;height:66px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3em;font-size:18px;color:var(--text)}
+.brand:hover{text-decoration:none}
+.links{display:flex;gap:22px;margin-left:auto;font-size:14px}.links a{color:var(--muted)}.links a:hover{color:var(--text);text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:12px;border:1px solid var(--line2);background:#111a2e;color:var(--text);font-weight:600;font-size:14px;transition:.15s}
+.btn:hover{text-decoration:none;border-color:#3d4f78;transform:translateY(-1px)}
+.btn.primary{border-color:rgba(91,140,255,.65);background:linear-gradient(180deg,rgba(91,140,255,.45),rgba(91,140,255,.2));box-shadow:0 8px 30px rgba(91,140,255,.25)}
+@media(max-width:860px){.links{display:none}nav .btn{margin-left:auto}}
+/* hero */
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:80px 24px 60px}
+@media(max-width:900px){.hero{grid-template-columns:1fr;padding-top:48px}.verdict{top:auto!important;bottom:-30px;transform:translateX(-50%)!important;min-width:130px;padding:7px 10px}.chamber{margin-bottom:40px}.verdict .act{font-size:17px}.orb b{font-size:15px}}
+.eyebrow{display:inline-flex;gap:8px;align-items:center;font-size:12.5px;letter-spacing:.08em;color:#c9d5f2;border:1px solid var(--line2);border-radius:999px;padding:6px 12px;background:rgba(14,20,36,.6)}
+.eyebrow i{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green)}
+h1{font-size:clamp(38px,5.4vw,64px);line-height:1.05;margin:20px 0 18px;letter-spacing:-.02em}
+.lead{font-size:18.5px;color:#b9c4da;max-width:580px}
+.cta{display:flex;gap:12px;margin-top:28px;flex-wrap:wrap}
+.chamber{position:relative;aspect-ratio:1/1;max-width:470px;width:100%;margin:0 auto}
+.orb{color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.55);position:absolute;width:44%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;text-align:center;mix-blend-mode:screen;animation:float 6s ease-in-out infinite}
+.orb b{display:block;font-size:17px;letter-spacing:.04em}.orb small{font-size:11.5px;opacity:.8}
+.orb .vote{margin-top:6px;font-family:var(--mono);font-weight:800;font-size:12px;padding:3px 9px;border-radius:7px;background:rgba(6,10,19,.55);display:inline-block;transition:.3s}
+.o1{left:3%;top:42%;background:radial-gradient(circle at 35% 30%,#8fb0ff,#3d6cf0 70%);animation-delay:0s}
+.o2{right:3%;top:42%;background:radial-gradient(circle at 35% 30%,#e0bcff,#9a52f0 70%);animation-delay:-2s}
+.o3{left:28%;top:4%;background:radial-gradient(circle at 35% 30%,#8af5d4,#14b386 70%);animation-delay:-4s}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.verdict{position:absolute;left:50%;top:60%;transform:translate(-50%,-50%);z-index:3;background:rgba(6,10,19,.88);border:1px solid var(--line2);border-radius:14px;padding:10px 16px;text-align:center;min-width:170px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.verdict .act{font-family:var(--mono);font-weight:800;font-size:22px;letter-spacing:.06em}
+.verdict .sub{font-size:11.5px;color:var(--muted)}
+/* sections */
+section{padding:84px 0;border-top:1px solid rgba(27,36,56,.5)}
+.kicker{font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--purple);font-weight:700}
+h2{font-size:clamp(28px,3.6vw,42px);line-height:1.15;margin:10px 0 14px;letter-spacing:-.01em}
+.sub2{color:#b0bbd2;max-width:720px;font-size:17px}
+.grid{display:grid;gap:18px}
+.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g2{grid-template-columns:1fr 1fr}
+@media(max-width:900px){.g3,.g4,.g2{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;backdrop-filter:blur(8px)}
+.card h3{margin:6px 0 8px;font-size:19px}.card p{margin:0;color:#b0bbd2;font-size:15px}
+.icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;border:1px solid var(--line2);background:#111a2e}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:10px}
+@media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{text-align:center;padding:18px 10px;border:1px solid var(--line);border-radius:16px;background:rgba(14,20,36,.55)}
+.stat b{display:block;font-family:var(--mono);font-size:28px}.stat span{color:var(--muted);font-size:13px}
+.steps{counter-reset:s;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:34px}
+@media(max-width:900px){.steps{grid-template-columns:1fr}}
+.step{position:relative;padding:24px 20px 20px;border:1px solid var(--line);border-radius:18px;background:var(--panel)}
+.step::before{counter-increment:s;content:counter(s);position:absolute;top:-14px;left:20px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-family:var(--mono);background:linear-gradient(135deg,var(--blue),var(--purple));font-size:14px}
+.step h3{margin:6px 0 8px;font-size:17px}.step p{margin:0;color:#b0bbd2;font-size:14.5px}
+.agent{border-top:3px solid var(--c)}
+.agent .role{color:var(--c);font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.agent q{display:block;margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(6,10,19,.6);border:1px solid var(--line);font-size:13.5px;color:#cfd8ea;quotes:none;font-style:italic}
+.rails{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:26px}
+@media(max-width:900px){.rails{grid-template-columns:repeat(2,1fr)}}
+.rail{border:1px solid var(--line);border-radius:14px;padding:14px;background:rgba(6,10,19,.5)}
+.rail span{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}.rail b{font-family:var(--mono);font-size:17px}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:8px}
+th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.08em}
+td.yes{color:#a6f3dc}td.no{color:#ffb3c0}
+.proof{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;margin-top:30px;align-items:start}
+@media(max-width:900px){.proof{grid-template-columns:1fr}}
+pre{margin:0;background:#070c18;border:1px solid var(--line);border-radius:14px;padding:16px;font-family:var(--mono);font-size:12.5px;color:#c8d3ea;overflow:auto;max-height:340px;white-space:pre-wrap}
+.hash{font-family:var(--mono);font-size:12.5px;word-break:break-all;padding:10px 12px;border-radius:10px;background:#070c18;border:1px solid var(--line);margin:6px 0}
+.check{margin-top:12px;padding:14px;border-radius:12px;font-size:14.5px;display:flex;gap:10px;align-items:center}
+.check.ok{background:rgba(34,211,160,.1);border:1px solid rgba(34,211,160,.45)}.check.bad{background:rgba(255,92,122,.1);border:1px solid rgba(255,92,122,.45)}
+.toggle{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.toggle button{font:inherit;font-size:13px;padding:8px 12px;border-radius:10px;border:1px solid var(--line2);background:#111a2e;color:var(--text);cursor:pointer}
+.toggle button.on{border-color:rgba(255,92,122,.6);background:rgba(255,92,122,.15)}
+.chat{display:flex;flex-direction:column;gap:10px}
+.msg{max-width:88%;padding:10px 14px;border-radius:14px;font-size:14.5px}
+.me{align-self:flex-end;background:linear-gradient(180deg,rgba(91,140,255,.4),rgba(91,140,255,.2));border:1px solid rgba(91,140,255,.5)}
+.bot{background:#111a2e;border:1px solid var(--line2)}
+.arch{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:12px;align-items:center;margin-top:30px}
+@media(max-width:900px){.arch{grid-template-columns:1fr}.arch .arrow{transform:rotate(90deg);justify-self:center}}
+.box{border:1px solid var(--line2);border-radius:16px;padding:18px;background:var(--panel);min-height:150px}
+.box h4{margin:0 0 8px;font-size:15px}.box ul{margin:0;padding-left:18px;color:#b0bbd2;font-size:13.5px}
+.arrow{font-size:26px;color:var(--purple)}
+.reqs li{margin:8px 0;color:#c9d3e6}.reqs li::marker{content:"✓  ";color:var(--green)}
+details{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:0 18px;margin:10px 0}
+summary{cursor:pointer;padding:16px 0;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::-webkit-details-marker{display:none}summary::after{content:"+";color:var(--purple);font-size:20px;line-height:1}
+details[open] summary::after{content:"–"}
+details p{margin:0 0 16px;color:#b0bbd2;font-size:15px}
+footer{padding:40px 0 60px;border-top:1px solid rgba(27,36,56,.6);color:var(--dim);font-size:13.5px}
+footer .wrap{display:flex;gap:20px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.reveal{opacity:0;transform:translateY(14px);transition:.7s ease}.reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="assets/logo-mark.svg" width="34" height="34" alt="" />QUORUM</a>
+    <div class="links"><a href="#how">How it works</a><a href="#council">Council</a><a href="#guardrails">Guardrails</a><a href="#proof">Proof</a><a href="#faq">FAQ</a></div>
+    <a class="btn primary" href="demo.html">Live demo →</a>
+  </div>
+</nav>
+
+<header class="wrap hero" id="top">
+  <div>
+    <span class="eyebrow"><i></i>Track 1 · AI Agent Trading · HSK Chain</span>
+    <h1>An AI trading council<br><span class="grad">that can't go rogue.</span></h1>
+    <p class="lead">Three AI agents debate every trade on HSKSwap. A smart contract enforces your risk limits, so even when they agree they can't break them. Every decision's reasoning is committed on-chain for anyone to verify.</p>
+    <div class="cta">
+      <a class="btn primary" href="demo.html">▶ Try the live demo</a>
+      <!-- EDIT: put your GitHub repository URL here -->
+      <a class="btn" href="https://github.com/Hajrajadoon/quorum-hsk" id="repoLink">View the code</a>
+      <a class="btn" href="#how">How it works</a>
+    </div>
+  </div>
+  <div class="chamber" aria-hidden="true">
+    <div class="orb o3"><div><b>Sentinel</b><small>Risk · veto</small><br><span class="vote" id="v3">BUY</span></div></div>
+    <div class="orb o1"><div><b>Atlas</b><small>Momentum</small><br><span class="vote" id="v1">BUY</span></div></div>
+    <div class="orb o2"><div><b>Nyx</b><small>Arbitrage</small><br><span class="vote" id="v2">HOLD</span></div></div>
+    <div class="verdict"><div class="act" id="vAct" style="color:var(--green)">BUY</div><div class="sub" id="vSub">2 of 3 · quorum reached</div></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stats">
+    <div class="stat"><b class="grad">3</b><span>AI agents per decision</span></div>
+    <div class="stat"><b class="grad">2/3</b><span>quorum to trade</span></div>
+    <div class="stat"><b class="grad">0</b><span>withdraw rights for the AI</span></div>
+    <div class="stat"><b class="grad">100%</b><span>decisions hashed on-chain</span></div>
+    <div class="stat"><b class="grad">37</b><span>automated tests</span></div>
+  </div>
+</div>
+
+<section id="problem">
+  <div class="wrap">
+    <div class="kicker">The problem</div>
+    <h2>Would you give an LLM your private key?</h2>
+    <p class="sub2">AI trading agents are everywhere. To use one, you hand it a wallet and hope. One bad output is enough to drain the account.</p>
+    <div class="grid g3" style="margin-top:28px">
+      <div class="card reveal"><div class="icon">🌀</div><h3>Hallucinations</h3><p>A single model misreads a chart or invents a signal, then trades on it with full confidence.</p></div>
+      <div class="card reveal"><div class="icon">💉</div><h3>Prompt injection</h3><p>A malicious token name, tweet or web page tells the agent to "buy everything" or "send funds".</p></div>
+      <div class="card reveal"><div class="icon">🔑</div><h3>Stolen keys</h3><p>The bot's hot key leaks from a server. Whoever holds it owns everything the bot can touch.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="kicker">How it works</div>
+    <h2>Debate, guard, execute, prove.</h2>
+    <p class="sub2">QUORUM wraps an autonomous agent in three layers of trust: no single AI decides, a contract enforces the limits, and every decision leaves a verifiable fingerprint.</p>
+    <div class="steps">
+      <div class="step reveal"><h3>Read the market</h3><p>Live HSKSwap quotes plus a reference price feed. The agent computes EMA trend, RSI, z-score, momentum, volatility regime and the DEX-vs-reference spread for arbitrage.</p></div>
+      <div class="step reveal"><h3>The council debates</h3><p>Atlas, Nyx and Sentinel each vote BUY, SELL or HOLD with a confidence and a written rationale. A trade needs a quorum, and Sentinel can veto.</p></div>
+      <div class="step reveal"><h3>Guardrails check</h3><p>Size, exposure, slippage, cooldown, buys per day and the daily-loss breaker are checked off-chain, then enforced again by the vault contract itself.</p></div>
+      <div class="step reveal"><h3>Execute &amp; prove</h3><p>The trade runs through the vault on HSK Chain. The keccak256 hash of the full debate rides inside the same transaction as Proof of Reasoning.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="council">
+  <div class="wrap">
+    <div class="kicker">Meet the council</div>
+    <h2>Three minds, three mandates.</h2>
+    <p class="sub2">Like a real trading desk, the people who chase profit are separated from the person who manages risk. Each agent runs on an LLM when one is configured, and always on a deterministic quant model, so the system never stops if the AI does.</p>
+    <div class="grid g3" style="margin-top:28px">
+      <div class="card agent reveal" style="--c:#5b8cff"><div class="role">Momentum quant</div><h3>Atlas</h3><p>Follows confirmed trends. Buys when the fast EMA leads the slow one with positive momentum, and exits when the trend breaks.</p><q>"Uptrend: EMA8 is 0.9% above EMA21 and momentum is +1.4%. Ride it."</q></div>
+      <div class="card agent reveal" style="--c:#c17bff"><div class="role">Contrarian &amp; arbitrage</div><h3>Nyx</h3><p>Hunts mispricing. Buys when HSKSwap trades below the reference price or the asset is oversold, and sells into premiums.</p><q>"HSKSwap is 1.39% below the reference price. Arbitrage window, buy the discount."</q></div>
+      <div class="card agent reveal" style="--c:#22d3a0"><div class="role">Risk officer · veto</div><h3>Sentinel</h3><p>Protects capital. Approves new risk only when volatility, exposure and the daily loss budget are healthy. Its veto is computed by code, so no LLM can talk it away.</p><q>"VETO on new risk: exposure 46.4% is near the 50% cap."</q></div>
+    </div>
+  </div>
+</section>
+
+<section id="guardrails">
+  <div class="wrap">
+    <div class="kicker">On-chain guardrails</div>
+    <h2>Your rules, enforced by a contract, not a promise.</h2>
+    <p class="sub2">The <span class="mono">QuorumVault</span> contract on HSK Chain holds the funds. The AI's key can only call <span class="mono">buy</span>, <span class="mono">sell</span> and <span class="mono">attest</span>, and every call is checked against the owner's policy. Exits are never blocked, so the agent can always reduce risk.</p>
+    <div class="rails">
+      <div class="rail reveal"><span>Max trade</span><b>20% of cash</b></div>
+      <div class="rail reveal"><span>Max position</span><b>50% of equity</b></div>
+      <div class="rail reveal"><span>Slippage cap</span><b>≤ 1% per swap</b></div>
+      <div class="rail reveal"><span>Quorum</span><b>2 of 3 votes</b></div>
+      <div class="rail reveal"><span>Cooldown</span><b>60 s between buys</b></div>
+      <div class="rail reveal"><span>Frequency</span><b>48 buys / day</b></div>
+      <div class="rail reveal"><span>Stop · Take profit</span><b>3% · 6%</b></div>
+      <div class="rail reveal"><span>Circuit breaker</span><b>−5% / day halts buys</b></div>
+    </div>
+    <p style="color:var(--muted);font-size:14px;margin-top:12px">Balanced preset shown. Conservative (unanimous 3/3 votes, 5% trades) and Aggressive presets switch with one owner signature.</p>
+    <div class="card" style="margin-top:22px">
+      <table>
+        <tr><th>Who</th><th>Can</th><th>Cannot</th></tr>
+        <tr><td><b>Owner</b> (your wallet)</td><td class="yes">Deposit, withdraw, set policy, kill switch, reset breaker</td><td>–</td></tr>
+        <tr><td><b>AI agent key</b></td><td class="yes">Trade whitelisted tokens inside the policy, commit reasoning hashes</td><td class="no">Withdraw · change limits · unpause · touch other tokens · exceed any cap</td></tr>
+        <tr><td><b>Anyone</b></td><td class="yes">Read every position and verify every decision</td><td>–</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="proof">
+  <div class="wrap">
+    <div class="kicker">Proof of reasoning</div>
+    <h2>Every decision leaves a fingerprint on-chain.</h2>
+    <p class="sub2">Before trading, the agent turns the full council transcript into canonical JSON and hashes it with keccak256. The hash is emitted by the vault inside the trade transaction, so the reasoning can't be edited later, not even by us. Try it: this page hashes the record below in your browser.</p>
+    <div class="proof">
+      <pre id="record"></pre>
+      <div>
+        <div style="font-size:13px;color:var(--muted)">Committed on-chain</div>
+        <div class="hash" id="committed"></div>
+        <div style="font-size:13px;color:var(--muted);margin-top:10px">Recomputed in your browser</div>
+        <div class="hash" id="recomputed"></div>
+        <div class="check ok" id="checkBox"></div>
+        <div class="toggle"><button id="tamperBtn">✏️ Change one vote</button><button id="resetBtn">↺ Restore original</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="chat">
+  <div class="wrap grid g2" style="align-items:center">
+    <div>
+      <div class="kicker">Talk to it</div>
+      <h2>Control it in plain language.</h2>
+      <p class="sub2">See positions and PnL in real time and steer the agent from the chat: size, frequency, risk appetite and target assets. Any change that loosens the on-chain limits needs the owner's wallet signature, because the AI can't sign its own permission slip.</p>
+    </div>
+    <div class="card chat">
+      <div class="msg me">be more conservative</div>
+      <div class="msg bot">Policy change ready (conservative preset): quorum 3/3, max trade 5%, stop-loss 2%. Only the vault owner can sign it, so approve the transaction in your wallet.</div>
+      <div class="msg me">why did you buy?</div>
+      <div class="msg bot">Decision #81: BUY qHSK. Atlas saw an uptrend, Sentinel approved the risk budget, and Nyx held. 2/3 quorum. Reasoning hash 0xfbd5…7bba2f is committed on-chain.</div>
+      <div class="msg me">only trade HSK · trade smaller · close all</div>
+    </div>
+  </div>
+</section>
+
+<section id="architecture">
+  <div class="wrap">
+    <div class="kicker">Architecture</div>
+    <h2>Simple pieces, hard guarantees.</h2>
+    <div class="arch">
+      <div class="box reveal"><h4>🧠 Agent (Node.js)</h4><ul><li>Market feed + indicators</li><li>Council of 3 (LLM optional)</li><li>Risk engine mirroring the contract</li><li>Chat + live dashboard</li></ul></div>
+      <div class="arrow">→</div>
+      <div class="box reveal"><h4>🔐 QuorumVault (Solidity)</h4><ul><li>Policy, quorum, cooldown, caps</li><li>Daily-loss circuit breaker</li><li>TradeExecuted + reasoning hash</li><li>Owner-only withdraw &amp; kill switch</li></ul></div>
+      <div class="arrow">→</div>
+      <div class="box reveal"><h4>🔁 HSKSwap</h4><ul><li>V3 adapter (SwapRouter02 / legacy)</li><li>V2 adapter</li><li>Output measured by balance delta</li><li>One-time vault binding</li></ul></div>
+    </div>
+    <div class="grid g2" style="margin-top:26px">
+      <div class="card"><h3>Built for Track 1</h3><ul class="reqs"><li>Monitors markets and on-chain data on HSKSwap</li><li>Spots arbitrage and spread opportunities in real time</li><li>Executes autonomously with strict risk controls and stop-loss</li><li>Conversational interface for positions, PnL and settings</li><li>Deployed on HSK Chain</li></ul></div>
+      <div class="card"><h3>Stack</h3><p style="font-size:15px">Solidity 0.8.24 · Foundry (26 tests incl. fuzzing) · Node.js + ethers v6 · OpenAI-compatible LLMs (optional) · zero-build dashboard · dependency-free keccak256 verification in the browser.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap" style="max-width:860px">
+    <div class="kicker">FAQ</div>
+    <h2>Questions, answered.</h2>
+    <details><summary>What is QUORUM in one sentence?</summary><p>An autonomous AI trading agent for HSK Chain where three AI agents must agree before any trade, a vault contract enforces your risk limits, and every decision's reasoning is committed on-chain.</p></details>
+    <details><summary>Can the AI steal or withdraw my funds?</summary><p>No. Only the owner's wallet can withdraw. The agent key can only call buy, sell and attest, and only within the policy. If the key leaked, the worst an attacker could do is trade inside your limits, and you can pause the vault with the kill switch.</p></details>
+    <details><summary>What does "quorum" mean here?</summary><p>Each decision is put to a vote of three agents. By default 2 of 3 must agree (3 of 3 in conservative mode). The vault contract itself rejects any trade that carries fewer votes than the policy requires.</p></details>
+    <details><summary>What if the LLM hallucinates or the AI API goes down?</summary><p>Every agent has a deterministic quant model underneath. An LLM, if configured, reasons on top of the same numbers, and any invalid output falls back to the model. Sentinel's veto is always computed by code, so an LLM can explain it but never lift it.</p></details>
+    <details><summary>How does Proof of Reasoning work?</summary><p>The full decision record (votes, rationales, market features, sizing, policy) is serialized to canonical JSON and hashed with keccak256. The hash is emitted on-chain in the trade transaction. Anyone can re-hash the published record and compare. Change one character and the hash no longer matches.</p></details>
+    <details><summary>Is the stop-loss on-chain?</summary><p>The daily-loss circuit breaker is fully on-chain: it uses realized PnL and needs no oracle. Stop-loss and take-profit thresholds are stored in the contract and triggered by the agent from live quotes, and sells are never blocked by cooldowns or the breaker.</p></details>
+    <details><summary>Does it guarantee profit?</summary><p>No, and no honest trading system can. QUORUM's promise is <b>safe autonomy</b>: whatever strategy runs inside it, it cannot exceed the risk budget the owner set. Strategies are pluggable.</p></details>
+    <details><summary>Why is there a demo venue in addition to HSKSwap?</summary><p>Liquidity on many HSKSwap mainnet pairs is still thin, which makes live demos unreliable. The same vault works with the real HSKSwap V3/V2 adapters or with a demo venue for showcases. Switching is a single owner call, setAdapter.</p></details>
+    <details><summary>Can I control it without coding?</summary><p>Yes. The dashboard has preset buttons (Conservative, Balanced, Aggressive), a kill switch, and a chat that understands commands like "stop loss 2%", "only trade HSK", "why did you sell?" and "close all".</p></details>
+    <details><summary>What's next?</summary><p>HSP agent-to-agent payments, so the council can buy signals from third-party agents per call. Multi-user vault shares (ERC-4626), oracle-based on-chain stop-loss, and a TEE-attested agent runtime.</p></details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span style="display:flex;align-items:center;gap:10px"><img src="assets/logo-mark.svg" width="26" height="26" alt="" /> QUORUM · HSK Chain Hackathon · Seoul 2026</span>
+    <span><a href="demo.html">Live demo</a> · <a href="https://github.com/Hajrajadoon/quorum-hsk">GitHub</a> · <a href="#faq">FAQ</a> · MIT licensed</span>
+  </div>
+</footer>
+
+<script>
+const MASK = (1n << 64n) - 1n;
+const RC = [
+  0x0000000000000001n, 0x0000000000008082n, 0x800000000000808an, 0x8000000080008000n,
+  0x000000000000808bn, 0x0000000080000001n, 0x8000000080008081n, 0x8000000000008009n,
+  0x000000000000008an, 0x0000000000000088n, 0x0000000080008009n, 0x000000008000000an,
+  0x000000008000808bn, 0x800000000000008bn, 0x8000000000008089n, 0x8000000000008003n,
+  0x8000000000008002n, 0x8000000000000080n, 0x000000000000800an, 0x800000008000000an,
+  0x8000000080008081n, 0x8000000000008080n, 0x0000000080000001n, 0x8000000080008008n,
+];
+// ROT[x][y]
+const ROT = [
+  [0, 36, 3, 41, 18],
+  [1, 44, 10, 45, 2],
+  [62, 6, 43, 15, 61],
+  [28, 55, 25, 21, 56],
+  [27, 20, 39, 8, 14],
+];
+
+function rotl(v, n) {
+  if (n === 0) return v;
+  const b = BigInt(n);
+  return ((v << b) | (v >> (64n - b))) & MASK;
+}
+
+function keccakF(s) {
+  const C = new Array(5);
+  const B = new Array(25);
+  for (let round = 0; round < 24; round++) {
+    for (let x = 0; x < 5; x++) C[x] = s[x] ^ s[x + 5] ^ s[x + 10] ^ s[x + 15] ^ s[x + 20];
+    for (let x = 0; x < 5; x++) {
+      const D = C[(x + 4) % 5] ^ rotl(C[(x + 1) % 5], 1);
+      for (let y = 0; y < 5; y++) s[x + 5 * y] ^= D;
+    }
+    for (let x = 0; x < 5; x++) {
+      for (let y = 0; y < 5; y++) B[y + 5 * ((2 * x + 3 * y) % 5)] = rotl(s[x + 5 * y], ROT[x][y]);
+    }
+    for (let x = 0; x < 5; x++) {
+      for (let y = 0; y < 5; y++) {
+        s[x + 5 * y] = B[x + 5 * y] ^ (~B[((x + 1) % 5) + 5 * y] & MASK & B[((x + 2) % 5) + 5 * y]);
+      }
+    }
+    s[0] ^= RC[round];
+  }
+}
+
+const RATE = 136; // bytes, for keccak256
+
+/** @param {Uint8Array} bytes @returns {string} 0x-prefixed hex digest */
+function keccak256Bytes(bytes) {
+  const s = new Array(25).fill(0n);
+  const padded = new Uint8Array(Math.ceil((bytes.length + 1) / RATE) * RATE);
+  padded.set(bytes);
+  padded[bytes.length] ^= 0x01;
+  padded[padded.length - 1] ^= 0x80;
+  for (let off = 0; off < padded.length; off += RATE) {
+    for (let i = 0; i < RATE / 8; i++) {
+      let lane = 0n;
+      for (let b = 7; b >= 0; b--) lane = (lane << 8n) | BigInt(padded[off + i * 8 + b]);
+      s[i] ^= lane;
+    }
+    keccakF(s);
+  }
+  let hex = '0x';
+  for (let i = 0; i < 4; i++) {
+    let lane = s[i];
+    for (let b = 0; b < 8; b++) {
+      hex += Number(lane & 0xffn).toString(16).padStart(2, '0');
+      lane >>= 8n;
+    }
+  }
+  return hex;
+}
+
+/** keccak256 of a UTF-8 string */
+function keccak256Utf8(text) {
+  return keccak256Bytes(new TextEncoder().encode(text));
+}
+
+(function(){
+  // ---- hero vote animation
+  const scenes=[
+    {v:['BUY','HOLD','BUY'],act:'BUY',c:'var(--green)',sub:'2 of 3 · quorum reached'},
+    {v:['HOLD','BUY','VETO'],act:'HOLD',c:'#b9c3d8',sub:'Sentinel vetoed: exposure near cap'},
+    {v:['SELL','SELL','SELL'],act:'SELL',c:'var(--red)',sub:'3 of 3 · take-profit hit'},
+    {v:['BUY','BUY','BUY'],act:'BUY',c:'var(--green)',sub:'unanimous · arbitrage window'}
+  ];
+  const col={BUY:'#22d3a0',SELL:'#ff5c7a',HOLD:'#e8edf7',VETO:'#ffb547'};
+  let i=0;
+  function scene(){const s=scenes[i++%scenes.length];
+    ['v1','v2','v3'].forEach((id,k)=>{const el=document.getElementById(id);el.textContent=s.v[k];el.style.color=col[s.v[k]];});
+    const a=document.getElementById('vAct');a.textContent=s.act;a.style.color=s.c;document.getElementById('vSub').textContent=s.sub;}
+  scene();setInterval(scene,2600);
+
+  // ---- proof of reasoning demo
+  const record={protocol:'QUORUM/1',chainId:177,decisionId:81,symbol:'HSK',action:'BUY',quorum:2,votes:2,price:0.52632,
+    agents:[
+      {name:'Atlas',stance:'BUY',confidence:0.71,rationale:'Uptrend: EMA8 is 0.42% above EMA21 and momentum is +1.1%. Ride it.'},
+      {name:'Nyx',stance:'HOLD',confidence:0.45,rationale:'Fairly priced: spread 12 bps, RSI 55. Nothing to exploit.'},
+      {name:'Sentinel',stance:'BUY',confidence:0.74,rationale:'Risk budget OK: volatility 0.9x baseline, exposure 31%. Approved.',veto:false}],
+    sizing:{side:'buy',amountIn:163.52,slippageBps:80}};
+  function canonical(v){if(Array.isArray(v))return '['+v.map(canonical).join(',')+']';
+    if(v&&typeof v==='object')return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}';return JSON.stringify(v);}
+  const original=canonical(record);const committed=keccak256Utf8(original);
+  let current=original;
+  function show(){
+    document.getElementById('record').textContent=JSON.stringify(JSON.parse(current),null,2);
+    const h=keccak256Utf8(current);document.getElementById('committed').textContent=committed;document.getElementById('recomputed').textContent=h;
+    const ok=h===committed;const box=document.getElementById('checkBox');box.className='check '+(ok?'ok':'bad');
+    box.innerHTML=ok?'✅ <span><b>Hashes match.</b> This is exactly what the council said when it traded.</span>':'❌ <span><b>Mismatch.</b> One changed vote and the fingerprint no longer matches the chain. Tampering is obvious.</span>';
+    document.getElementById('tamperBtn').classList.toggle('on',!ok);}
+  document.getElementById('tamperBtn').onclick=()=>{current=original.replace('"stance":"HOLD"','"stance":"BUY"');show();};
+  document.getElementById('resetBtn').onclick=()=>{current=original;show();};
+  show();
+
+  // ---- reveal on scroll
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+})();
+</script>
+</body>
+</html>
