@@ -141,7 +141,8 @@ export async function deliberate(ctx, opts = {}) {
               content:
                 `${m.persona}\nYou sit on a 3-member AI trading council for a vault on HSK Chain. ` +
                 'Reply with ONLY a JSON object: {"stance":"BUY"|"SELL"|"HOLD","confidence":0..1,"rationale":"one or two sentences citing the numbers"}. ' +
-                'SELL is only valid when the vault holds the asset.',
+                'SELL is only valid when the vault holds the asset. ' +
+                'Cite ONLY numbers that appear in the data you are given. There is no volume, order-book or news data, so never mention or invent them.',
             },
             {
               role: 'user',
