@@ -91,8 +91,21 @@ function render() {
   renderChat();
 }
 
+const LIVE_VAULT = '0x7DF359021Ec05fac73037Fca43618d527938541f';
+let demoNoteShown = false;
+
 function renderHeader() {
   const live = S.mode === 'live';
+  if (!live && window.QUORUM_API && !demoNoteShown) {
+    // public web demo: explain what visitors are looking at
+    demoNoteShown = true;
+    const b = $('banner');
+    b.classList.add('show', 'info');
+    b.innerHTML =
+      '<b>Interactive demo.</b> The whole engine runs in your browser on a simulated market, so no wallet is needed. ' +
+      `The real agent trades on <b>HSK Chain testnet</b> through vault <span class="mono">${LIVE_VAULT}</span>, ` +
+      'with owner actions (kill switch, policy) signed in MetaMask. Try: Verify ✓ on a trade, the Kill switch, or type <i>be more conservative</i>.';
+  }
   $('netName').textContent = live ? `${S.info.network} · ${S.info.chainId}` : 'Simulation · HSK Chain replica';
   const vaultEl = $('vaultAddr');
   if (live) {
