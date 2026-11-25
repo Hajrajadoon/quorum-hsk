@@ -12,6 +12,7 @@
 
 [![Website](https://img.shields.io/badge/Website-GitHub%20Pages-7C3AED?style=for-the-badge&logo=github&logoColor=white)](https://hajrajadoon.github.io/quorum-hsk/)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Try%20it-22D3A0?style=for-the-badge&logo=googlechrome&logoColor=white)](https://hajrajadoon.github.io/quorum-hsk/demo.html)
+[![Pitch Deck](https://img.shields.io/badge/Pitch%20Deck-PDF-C17BFF?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](https://hajrajadoon.github.io/quorum-hsk/QUORUM-pitch-deck.pdf)
 ![Track](https://img.shields.io/badge/Track%201-AI%20Agent%20Trading-5B8CFF?style=for-the-badge)
 ![Chain](https://img.shields.io/badge/Chain-HSK%20Chain-8B5CF6?style=for-the-badge)
 ![Contracts](https://img.shields.io/badge/Contracts-Solidity%200.8.24-363636?style=for-the-badge&logo=solidity&logoColor=white)
@@ -22,7 +23,7 @@
 
 <br />
 
-**[Website](https://hajrajadoon.github.io/quorum-hsk/)** · **[Live Demo](https://hajrajadoon.github.io/quorum-hsk/demo.html)** · **[Getting Started](#getting-started)** · **[Deploy to Mainnet](docs/DEPLOY.md)**
+**[Website](https://hajrajadoon.github.io/quorum-hsk/)** · **[Live Demo](https://hajrajadoon.github.io/quorum-hsk/demo.html)** · **[Pitch Deck](https://hajrajadoon.github.io/quorum-hsk/QUORUM-pitch-deck.pdf)** · **[Getting Started](#getting-started)** · **[Deploy to Mainnet](docs/DEPLOY.md)**
 
 </div>
 
@@ -31,6 +32,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Pitch Deck](#pitch-deck)
 - [Live Deployment](#live-deployment)
 - [The Problem and Our Solution](#the-problem-and-our-solution)
 - [Key Features](#key-features)
@@ -83,12 +85,21 @@ Users control everything in plain language: *"be more conservative"*, *"stop los
 
 ---
 
+## Pitch Deck
+
+<a href="https://hajrajadoon.github.io/quorum-hsk/QUORUM-pitch-deck.pdf"><img src="./docs/assets/deck-cover.png" alt="QUORUM pitch deck, click to open the PDF" width="720" /></a>
+
+**[Open the pitch deck (PDF)](https://hajrajadoon.github.io/quorum-hsk/QUORUM-pitch-deck.pdf)**: problem, solution, the council, on-chain guardrails, proof of reasoning, the live testnet deployment, Track 1 fit and roadmap. The file is also in the repo at [`docs/QUORUM-pitch-deck.pdf`](docs/QUORUM-pitch-deck.pdf).
+
+---
+
 ## Live Deployment
 
 | Component | Where | Link / Address |
 |---|---|---|
 | **Website** (landing page) | GitHub Pages | [hajrajadoon.github.io/quorum-hsk](https://hajrajadoon.github.io/quorum-hsk/) |
 | **Interactive demo** (full dashboard, runs in the browser) | GitHub Pages | [hajrajadoon.github.io/quorum-hsk/demo.html](https://hajrajadoon.github.io/quorum-hsk/demo.html) |
+| **Pitch deck** (PDF, 9 slides) | GitHub Pages | [QUORUM-pitch-deck.pdf](https://hajrajadoon.github.io/quorum-hsk/QUORUM-pitch-deck.pdf) |
 | **QuorumVault**, HSK Chain **Testnet** (133) | On-chain | `0x7DF359021Ec05fac73037Fca43618d527938541f` |
 | **MockAdapter** (demo venue), Testnet | On-chain | `0x338576246A10a32C1760cC96BB356B5B7C1c277D` |
 | **Demo tokens**, Testnet | On-chain | qUSD `0x3ac3280F028cE78271197A6b9025DDC7486f6eEd` · qHSK `0x90143d1b0e2666F3d3DBe17305C77E26Ee7A0FB3` · qETH `0xF3271956f2aD1b9B83ddfC8220A1D4703071d838` |
@@ -707,7 +718,7 @@ Built by **Hajrajadoon** for the **HSK Chain Hackathon, Seoul 2026** (Track 1 ·
 
 <div align="center">
 
-**[Website](https://hajrajadoon.github.io/quorum-hsk/)** · **[Live Demo](https://hajrajadoon.github.io/quorum-hsk/demo.html)** · **[Deploy Guide](docs/DEPLOY.md)**
+**[Website](https://hajrajadoon.github.io/quorum-hsk/)** · **[Live Demo](https://hajrajadoon.github.io/quorum-hsk/demo.html)** · **[Pitch Deck](https://hajrajadoon.github.io/quorum-hsk/QUORUM-pitch-deck.pdf)** · **[Deploy Guide](docs/DEPLOY.md)**
 
 **QUORUM** · An AI trading council that can't go rogue.
 
