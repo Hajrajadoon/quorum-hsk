@@ -48,6 +48,7 @@ export class QuorumEngine {
     this.lastError = null;
     this.timer = null;
     this.running = false;
+    this.feedHoldUntil = 0;
   }
 
   // ------------------------------------------------------------------ lifecycle
@@ -530,6 +531,7 @@ export class QuorumEngine {
       await this._refresh();
       return { reply: `Policy updated on-chain (${label}).\n${this._policyText(next)}`, txHash: res.txHash };
     }
+    this.feedHoldUntil = Date.now() + 120_000;
     return {
       reply:
         `Policy change ready (${label}). Only the vault owner can sign it: approve the transaction in your wallet. ` +
@@ -565,7 +567,13 @@ export class QuorumEngine {
       this._emitState();
       return { done: true, txHash: res?.txHash ?? null };
     }
+    // the owner will sign in their wallet: hold the demo price feed (same key) for up to 2 minutes
+    this.feedHoldUntil = Date.now() + 120_000;
     return { done: false, ownerTx: { method, arg } };
+  }
+
+  releaseFeedHold() {
+    this.feedHoldUntil = 0;
   }
 
   // ------------------------------------------------------------------ text helpers
@@ -578,12 +586,13 @@ export class QuorumEngine {
   _statusText() {
     const { snap, views, equity, unrealized } = this.live;
     const total = snap.realizedPnlTotal + unrealized;
-    const pct = this.initialEquity > 0 ? (equity / this.initialEquity - 1) * 100 : 0;
+    const capitalIn = snap.baseBalance + snap.totalCostBasis - snap.realizedPnlTotal;
+    const pct = capitalIn > 0 ? ((snap.realizedPnlTotal + unrealized) / capitalIn) * 100 : 0;
     const pos = views
       .filter((v) => v.balance > 0)
       .map((v) => `• ${v.symbol}: ${fmtNum(v.balance)} @ ${fmtPrice(v.price)} = ${fmtUsd(v.value)} (${sign(v.pnlPct)}${v.pnlPct.toFixed(2)}%)`);
     return [
-      `Equity ${fmtUsd(equity)} (${sign(pct)}${pct.toFixed(2)}% since start). PnL ${sign(total)}${fmtUsd(total)}: realized ${fmtUsd(snap.realizedPnlTotal)}, unrealized ${fmtUsd(unrealized)}.`,
+      `Equity ${fmtUsd(equity)} (${sign(pct)}${pct.toFixed(2)}% on capital). PnL ${sign(total)}${fmtUsd(total)}: realized ${fmtUsd(snap.realizedPnlTotal)}, unrealized ${fmtUsd(unrealized)}.`,
       `Cash: ${fmtUsd(snap.baseBalance)} ${this.info.baseSymbol}.`,
       pos.length ? `Positions:\n${pos.join('\n')}` : 'No open positions.',
       `Status: ${this._statusWord()}. Buys today ${snap.buysToday}/${this.live.policy.maxTradesPerDay}. Trades ${this.stats.trades}, vetoes ${this.stats.vetoes}, guardrail blocks ${this.stats.blocked}.`,

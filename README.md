@@ -89,9 +89,11 @@ Users control everything in plain language: *"be more conservative"*, *"stop los
 |---|---|---|
 | **Website** (landing page) | GitHub Pages | [hajrajadoon.github.io/quorum-hsk](https://hajrajadoon.github.io/quorum-hsk/) |
 | **Interactive demo** (full dashboard, runs in the browser) | GitHub Pages | [hajrajadoon.github.io/quorum-hsk/demo.html](https://hajrajadoon.github.io/quorum-hsk/demo.html) |
-| **QuorumVault**, HSK Chain **Testnet** (133) | On-chain | `0xd89458cCADFD316d01843cE603957f7f1B3D8a85` |
-| **MockAdapter** (demo venue), Testnet | On-chain | `0x08fF9F61FF28c8203903c9E214da266C0473444b` |
-| **QuorumVault**, HSK Chain **Mainnet** (177) | On-chain | *Deployment in progress, will be added here* |
+| **QuorumVault**, HSK Chain **Testnet** (133) | On-chain | `0x7DF359021Ec05fac73037Fca43618d527938541f` |
+| **MockAdapter** (demo venue), Testnet | On-chain | `0x338576246A10a32C1760cC96BB356B5B7C1c277D` |
+| **Demo tokens**, Testnet | On-chain | qUSD `0x3ac3280F028cE78271197A6b9025DDC7486f6eEd` · qHSK `0x90143d1b0e2666F3d3DBe17305C77E26Ee7A0FB3` · qETH `0xF3271956f2aD1b9B83ddfC8220A1D4703071d838` |
+| **Owner** (MetaMask) / **Agent** (AI hot key) | Separate wallets | Owner `0x35d5CfCdcacaBF2d50b534a2E50098b5Da192BF6` · Agent `0x9FC6357Bcc4E2a2B690e9dCa1485828338DAc258` |
+| **QuorumVault**, HSK Chain **Mainnet** (177) | On-chain | *Planned after the hackathon. Per the organizers, winning teams migrate to mainnet after the event.* |
 | **Live agent** | Runs on the operator's machine | `npm run live` → dashboard at `http://127.0.0.1:8787` |
 
 > **Note:** The interactive demo runs the entire engine (market, council, vault rules, proof of reasoning) inside your browser on a simulated market, so anyone can try it without a wallet. The live agent trades real on-chain transactions through the vault.
@@ -604,6 +606,8 @@ The agent's built-in server (no external dependencies):
 | `POST` | `/api/chat` | `{ "text": "..." }` |
 | `POST` | `/api/control` | `{ "action": "pause" \| "resume" \| "closeAll" }` |
 | `POST` | `/api/owner` | Owner actions (executed directly in simulation, otherwise returned for wallet signing) |
+| `GET` | `/tx/{hash}` | Built-in transaction viewer: decoded events + **Proof of Reasoning check** (on-chain hash vs re-hashed transcript) |
+| `GET` | `/vault` | Built-in vault page: roles, live state, on-chain policy, positions and recent trades read from events |
 
 ---
 
@@ -642,8 +646,8 @@ The live on-chain agent is a long-running process that holds a private key, so i
 - **Stop-loss price source:** the circuit breaker is fully on-chain (it uses realized PnL). Stop-loss and take-profit thresholds are on-chain but triggered by the agent from venue quotes.
 - **Self-reported votes:** the vault enforces the vote count the agent reports. That count is bound to the committed transcript, but it is not proven in zero-knowledge.
 - **No profit guarantee:** QUORUM guarantees *bounded risk*, not returns. Strategies are pluggable.
-- **Gas:** HSK Chain mainnet gas is currently around 500 gwei. A full demo deployment is roughly 5.4M gas.
-- **The testnet explorer** was offline during development. Transactions were verified with `cast receipt`.
+- **Network:** during the hackathon QUORUM runs on HSK Chain **testnet**, as the organizers recommend. The contracts and scripts are mainnet-ready (`--rpc-url hsk_mainnet`).
+- **The HSK testnet explorer** was offline during development. The agent detects this and links every transaction to its **built-in viewer** (`/tx/<hash>` and `/vault`), which reads straight from the chain and checks the reasoning hash.
 
 ---
 
@@ -658,7 +662,7 @@ The live on-chain agent is a long-running process that holds a private key, so i
 - [x] Testnet deployment with live on-chain trades
 - [x] Landing page and interactive demo
 - [x] 37 automated tests (Foundry + Node)
-- [ ] Mainnet deployment, verified on Blockscout
+- [ ] Mainnet deployment, verified on Blockscout (after the hackathon, per the organizers' migration plan)
 - [ ] HSP agent-to-agent payments: the council buys signals from third-party agents per call
 - [ ] Multi-user vault shares (ERC-4626)
 - [ ] Oracle-based on-chain stop-loss

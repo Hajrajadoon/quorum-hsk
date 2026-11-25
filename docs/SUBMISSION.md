@@ -27,7 +27,7 @@ QUORUM is an autonomous trading agent for HSKSwap. Three AI agents debate every 
 
 ## Final checklist
 
-- [ ] Contracts deployed on **HSK Chain mainnet** and verified on Blockscout (mandatory for prize eligibility)
+- [ ] Contracts deployed on **HSK Chain testnet** (organizers confirmed: develop on testnet during the hackathon; winners migrate to mainnet afterwards)
 - [ ] At least a few **real trades** visible on the explorer (DeployDemo venue and/or real HSKSwap)
 - [ ] GitHub repo public, with the README at the root and no `.env` files committed (`git status` before pushing)
 - [ ] Demo video recorded (screen + voice, follow docs/PITCH.md)

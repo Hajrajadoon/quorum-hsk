@@ -62,6 +62,7 @@ async function main() {
       probeAmount: Number(env.PRICE_PROBE || 1),
     });
     log(`Connected to ${vault.network} · vault ${vault.address} · base ${vault.base.symbol} · tokens ${Object.keys(vault.tokens).join(', ')}`);
+    if (vault.explorerDown) log(`Block explorer ${vault.explorerDown} is unreachable: using the built-in viewer (/tx/<hash>, /vault)`);
 
     let pusher = null;
     if (env.MOCK_FEED_PRIVATE_KEY) {
@@ -78,7 +79,7 @@ async function main() {
     } catch {
       history = [];
     }
-    const feed = createLiveFeed({ vault, refIds: envJson('REF_PRICE_IDS', {}), pusher, history, log });
+    const feed = createLiveFeed({ vault, refIds: envJson('REF_PRICE_IDS', {}), pusher, history, log, feedOnHold: () => Date.now() < (engine?.feedHoldUntil ?? 0) });
     const baseNext = feed.next;
     feed.next = async () => {
       const step = await baseNext();

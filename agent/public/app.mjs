@@ -95,8 +95,10 @@ function renderHeader() {
   const live = S.mode === 'live';
   $('netName').textContent = live ? `${S.info.network} · ${S.info.chainId}` : 'Simulation · HSK Chain replica';
   const vaultEl = $('vaultAddr');
-  if (live && S.info.explorer) vaultEl.innerHTML = `<a href="${esc(S.info.explorer)}/address/${esc(S.info.vault)}" target="_blank" rel="noopener">${short(S.info.vault)}</a>`;
-  else vaultEl.textContent = short(S.info.vault);
+  if (live) {
+    const href = S.info.explorer ? `${esc(S.info.explorer)}/address/${esc(S.info.vault)}` : '/vault';
+    vaultEl.innerHTML = `<a href="${href}" target="_blank" rel="noopener">${short(S.info.vault)}</a>`;
+  } else vaultEl.textContent = short(S.info.vault);
   const pill = $('statusPill');
   pill.className = `pill status-${S.statusCode}`;
   $('statusText').textContent = { live: 'COUNCIL LIVE', standby: 'STANDING DOWN', halted: 'BUYS HALTED', paused: 'VAULT PAUSED' }[S.statusCode] ?? S.status;
@@ -110,10 +112,12 @@ function renderHeader() {
 }
 
 function renderKpis() {
-  const gain = S.equity - S.initialEquity;
-  const gainPct = S.initialEquity ? (S.equity / S.initialEquity - 1) * 100 : 0;
+  // gain on the capital put in = realized + unrealized PnL (consistent with the Total PnL card)
+  const gain = S.pnl.total;
+  const capitalIn = (S.snap.baseBalance ?? 0) + (S.snap.totalCostBasis ?? 0) - (S.pnl.realized ?? 0);
+  const gainPct = capitalIn > 0 ? (gain / capitalIn) * 100 : 0;
   $('kEquity').textContent = usd(S.equity);
-  $('kEquitySub').innerHTML = `<span class="${cls(gain)}">${signed(gain)} (${pct(gainPct)})</span> since start`;
+  $('kEquitySub').innerHTML = `<span class="${cls(gain)}">${signed(gain)} (${pct(gainPct)})</span> on capital`;
   $('kPnl').innerHTML = `<span class="${cls(S.pnl.total)}">${signed(S.pnl.total)}</span>`;
   $('kPnlSub').innerHTML = `realized <span class="${cls(S.pnl.realized)}">${signed(S.pnl.realized)}</span> · open <span class="${cls(S.pnl.unrealized)}">${signed(S.pnl.unrealized)}</span>`;
   const sells = S.trades.filter((t) => t.side === 'SELL');
@@ -493,24 +497,60 @@ function calldata(method, arg) {
   throw new Error('unknown method');
 }
 
+function walletError(e) {
+  const code = e?.code ?? e?.data?.code;
+  if (code === 4001) return new Error('You cancelled the request in MetaMask.');
+  if (code === 4100) return new Error('MetaMask has not authorized this site for that account or network. Approve the permission prompt and try again.');
+  if (code === -32002) return new Error('MetaMask already has a request open. Click the MetaMask icon and finish it.');
+  return e instanceof Error ? e : new Error(e?.message ?? String(e));
+}
+
+/** Make sure MetaMask is on the vault's network AND has granted this site that network. */
+async function ensureChain(eth) {
+  const chain = CHAINS[S.info.chainId];
+  if (!chain) return;
+  try {
+    // always ask: on new MetaMask versions this also grants the site permission for the network
+    await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: chain.chainId }] });
+  } catch (e) {
+    if (e?.code === 4902 || /unrecognized chain|not been added/i.test(e?.message ?? '')) {
+      await eth.request({ method: 'wallet_addEthereumChain', params: [chain] });
+    } else throw e;
+  }
+}
+
 async function connectWallet() {
   const eth = window.ethereum;
   if (!eth) throw new Error('No wallet found. Install MetaMask (or any EIP-1193 wallet).');
-  const [acct] = await eth.request({ method: 'eth_requestAccounts' });
-  const chain = CHAINS[S.info.chainId];
-  const current = await eth.request({ method: 'eth_chainId' });
-  if (chain && parseInt(current, 16) !== S.info.chainId) {
+  let accounts = await eth.request({ method: 'eth_accounts' });
+  if (!accounts?.length) accounts = await eth.request({ method: 'eth_requestAccounts' });
+  await ensureChain(eth);
+  ownerAccount = accounts[0];
+  $('walletBtn').textContent = `Owner ${short(ownerAccount)}`;
+  if (S.info.owner && ownerAccount.toLowerCase() !== S.info.owner.toLowerCase()) {
+    toast(`Heads up: ${short(ownerAccount)} is not the vault owner (${short(S.info.owner)}). Switch account in MetaMask.`);
+  }
+  return ownerAccount;
+}
+
+async function sendOwnerTx(data) {
+  const eth = window.ethereum;
+  const send = async () => {
+    const from = await connectWallet();
+    return eth.request({ method: 'eth_sendTransaction', params: [{ from, to: S.info.vault, data }] });
+  };
+  try {
+    return await send();
+  } catch (e) {
+    if ((e?.code ?? e?.data?.code) !== 4100) throw walletError(e);
+    // not authorized yet: ask MetaMask for account permission, then try once more
     try {
-      await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: chain.chainId }] });
-    } catch (e) {
-      if (e && e.code === 4902) await eth.request({ method: 'wallet_addEthereumChain', params: [chain] });
-      else throw e;
+      await eth.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] });
+      return await send();
+    } catch (e2) {
+      throw walletError(e2);
     }
   }
-  ownerAccount = acct;
-  $('walletBtn').textContent = `Owner ${short(acct)}`;
-  if (S.info.owner && acct.toLowerCase() !== S.info.owner.toLowerCase()) toast(`Heads up: ${short(acct)} is not the vault owner (${short(S.info.owner)}). The transaction will revert.`);
-  return acct;
 }
 
 async function ownerTx(method, arg) {
@@ -518,17 +558,23 @@ async function ownerTx(method, arg) {
   const r = await API.owner(method, arg);
   if (r.done) return toast(method === 'setPaused' ? (arg ? 'Kill switch engaged' : 'Kill switch released') : 'Done on-chain');
   // live: the owner signs in their wallet
-  const from = ownerAccount || (await connectWallet());
-  const hash = await window.ethereum.request({ method: 'eth_sendTransaction', params: [{ from, to: S.info.vault, data: calldata(method, arg) }] });
-  toast(`Owner tx sent ${short(hash)}. The dashboard updates when it confirms.`);
-  for (let i = 0; i < 20; i++) {
-    await new Promise((res) => setTimeout(res, 2500));
+  let hash;
+  try {
+    hash = await sendOwnerTx(calldata(method, arg));
+  } catch (e) {
+    API.refresh().catch(() => {}); // release the agent's price-feed hold
+    throw e;
+  }
+  toast(`Owner tx sent ${short(hash)}. Waiting for confirmation…`);
+  for (let i = 0; i < 30; i++) {
+    await new Promise((res) => setTimeout(res, 2000));
     const rec = await window.ethereum.request({ method: 'eth_getTransactionReceipt', params: [hash] });
     if (rec) {
       await API.refresh();
       return toast(rec.status === '0x1' ? 'Owner transaction confirmed ✅' : 'Owner transaction reverted ❌');
     }
   }
+  toast('Still waiting for confirmation. The dashboard updates automatically when it lands.');
 }
 
 // ------------------------------------------------------------------ misc UI
@@ -583,7 +629,11 @@ document.addEventListener('click', async (e) => {
     } else if (t.id === 'killBtn') {
       await ownerTx('setPaused', !S.snap.paused);
     } else if (t.id === 'walletBtn') {
-      await connectWallet();
+      try {
+        await connectWallet();
+      } catch (err) {
+        throw walletError(err);
+      }
     } else if (t.parentElement?.id === 'sugg') {
       sendChat(t.textContent);
     }

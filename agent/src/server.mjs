@@ -3,6 +3,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { renderTxPage, renderVaultPage } from './pages.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUBLIC = path.join(ROOT, 'public');
@@ -96,6 +97,25 @@ export function startServer(engine, { port, host, controlToken, log = console.lo
           });
           return undefined;
         }
+        if (p.startsWith('/tx/')) {
+          const hash = p.slice(4);
+          if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) return send(res, 400, 'bad transaction hash', 'text/plain');
+          const tx = engine.vault.txDetails ? await engine.vault.txDetails(hash) : { simulated: true };
+          let decision = null;
+          for (const d of engine.archive.values()) {
+            if (d.txHash && d.txHash.toLowerCase() === hash.toLowerCase()) decision = d;
+          }
+          return send(res, 200, renderTxPage(hash, tx, decision), 'text/html; charset=utf-8');
+        }
+        if (p === '/vault') {
+          const v = engine.vault.vaultDetails ? await engine.vault.vaultDetails() : null;
+          if (v && !v.trades.length && engine.trades.length) {
+            // event query unavailable (RPC range limits): fall back to the agent's own record of tx hashes
+            v.trades = engine.trades.slice(0, 25).map((t) => ({ id: t.id, side: t.side, token: t.symbol, pnl: t.pnl, votes: null, txHash: t.txHash }));
+            v.tradesSource = 'agent';
+          }
+          return send(res, 200, renderVaultPage(v), 'text/html; charset=utf-8');
+        }
         if (p.startsWith('/src/core/')) return serveFile(res, CORE, p.slice('/src/core/'.length));
         return serveFile(res, PUBLIC, p.slice(1));
       }
@@ -118,6 +138,7 @@ export function startServer(engine, { port, host, controlToken, log = console.lo
           return send(res, 200, r);
         }
         if (p === '/api/refresh') {
+          engine.releaseFeedHold?.();
           await engine._refresh();
           engine._emitState();
           return send(res, 200, { ok: true });

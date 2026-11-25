@@ -3,7 +3,7 @@
 
 import { SimMarket } from '../core/simMarket.mjs';
 
-export function createLiveFeed({ vault, refIds = {}, pusher = null, history = [], log = () => {} }) {
+export function createLiveFeed({ vault, refIds = {}, pusher = null, history = [], log = () => {}, feedOnHold = () => false }) {
   const symbols = Object.keys(vault.tokens);
   let refCache = { t: 0, prices: {} };
   let sim = null;
@@ -48,7 +48,15 @@ export function createLiveFeed({ vault, refIds = {}, pusher = null, history = []
         const step = sim.step();
         const prices = {};
         for (const s of symbols) prices[s] = step.quotes[s].price;
-        await pusher.pushAll(prices); // one transaction for every symbol that moved
+        // The demo price feed signs with the owner key. While the owner is signing in MetaMask we
+        // pause it, so both don't race for the same nonce ("nonce too low").
+        if (!feedOnHold()) {
+          try {
+            await pusher.pushAll(prices); // one transaction for every symbol that moved
+          } catch (e) {
+            log('price feed push skipped:', e.shortMessage ?? e.message);
+          }
+        }
         for (const s of symbols) quotes[s] = { price: step.quotes[s].price, ref: step.quotes[s].ref };
         return { t, quotes };
       }

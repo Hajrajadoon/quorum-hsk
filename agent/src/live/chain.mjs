@@ -13,6 +13,7 @@ export const VAULT_ABI = [
   `function policy() view returns (${POLICY_T})`,
   'function snapshot() view returns (tuple(uint256 baseBalance,uint256 totalCostBasis,int256 realizedPnlTotal,uint256 realizedLossToday,uint256 dayStartEquity,uint16 buysToday,uint64 lastBuyAt,uint64 haltedUntil,bool halted,bool paused,uint256 tradeCount,uint256 timestamp))',
   'function positions() view returns (address[] list,uint256[] balances,uint256[] costs,bool[] allowed)',
+  'function paused() view returns (bool)',
   `function buy(${TRADE_T} t) returns (uint256)`,
   `function sell(${TRADE_T} t) returns (uint256)`,
   'function attest(bytes32 reasoningHash,uint8 action,uint8 votes)',
@@ -56,6 +57,20 @@ export const ADAPTER_ABI = [
   'error NotVault()',
 ];
 
+async function isReachable(url) {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    await fetch(url, { method: 'GET', signal: ctrl.signal, redirect: 'manual' });
+    clearTimeout(timer);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const TRANSFER_IFACE = new ethers.Interface(['event Transfer(address indexed from,address indexed to,uint256 value)']);
+
 const ERC20_ABI = [
   'function symbol() view returns (string)',
   'function decimals() view returns (uint8)',
@@ -96,6 +111,11 @@ export class LiveVault {
     v.wallet = wallet;
     v.chainId = Number(net.chainId);
     v.explorer = o.explorer || NETWORKS[v.chainId]?.explorer || null;
+    if (v.explorer && !(await isReachable(v.explorer))) {
+      // e.g. the HSK testnet explorer is offline: use the agent's built-in transaction viewer instead
+      v.explorerDown = v.explorer;
+      v.explorer = null;
+    }
     v.network = NETWORKS[v.chainId]?.name ?? `chain ${v.chainId}`;
     v.address = ethers.getAddress(o.vaultAddress);
     v.vault = new ethers.Contract(v.address, VAULT_ABI, wallet);
@@ -134,7 +154,7 @@ export class LiveVault {
   }
 
   explorerTx(hash) {
-    return this.explorer ? `${this.explorer}/tx/${hash}` : null;
+    return this.explorer ? `${this.explorer}/tx/${hash}` : `/tx/${hash}`;
   }
 
   async info() {
@@ -152,7 +172,145 @@ export class LiveVault {
       symbols: Object.keys(this.tokens),
       tokens: this.tokens,
       explorer: this.explorer,
+      explorerDown: this.explorerDown ?? null,
     };
+  }
+
+  _symbolOf(address) {
+    const a = String(address).toLowerCase();
+    if (a === this.base.address.toLowerCase()) return this.base;
+    return Object.values(this.tokens).find((t) => t.address.toLowerCase() === a) ?? null;
+  }
+
+  /** Decoded transaction for the built-in viewer (works even when no block explorer is online). */
+  async txDetails(hash) {
+    const [tx, rc] = await Promise.all([this.provider.getTransaction(hash), this.provider.getTransactionReceipt(hash)]);
+    if (!tx) return null;
+    const isVault = (addr) => addr && addr.toLowerCase() === this.address.toLowerCase();
+    let method = null;
+    if (isVault(tx.to)) {
+      try {
+        method = this.vault.interface.parseTransaction({ data: tx.data })?.name ?? null;
+      } catch {
+        method = null;
+      }
+    }
+    const events = [];
+    for (const log of rc?.logs ?? []) {
+      if (isVault(log.address)) {
+        let parsed = null;
+        try {
+          parsed = this.vault.interface.parseLog(log);
+        } catch {
+          parsed = null;
+        }
+        if (parsed?.name === 'TradeExecuted') {
+          const r = parsed.args.record;
+          const token = this._symbolOf(parsed.args.token);
+          const inTok = r.isBuy ? this.base : token;
+          const outTok = r.isBuy ? token : this.base;
+          events.push({
+            name: 'TradeExecuted',
+            tradeId: Number(parsed.args.id),
+            side: r.isBuy ? 'BUY' : 'SELL',
+            token: token?.symbol ?? parsed.args.token,
+            amountIn: inTok ? fromUnits(r.amountIn, inTok.decimals) : String(r.amountIn),
+            amountInSymbol: inTok?.symbol ?? '',
+            amountOut: outTok ? fromUnits(r.amountOut, outTok.decimals) : String(r.amountOut),
+            amountOutSymbol: outTok?.symbol ?? '',
+            pnl: fromUnits(r.pnl, this.base.decimals),
+            votes: Number(r.votes),
+            reasoningHash: r.reasoningHash,
+          });
+          continue;
+        }
+        if (parsed) {
+          const args = {};
+          parsed.fragment.inputs.forEach((inp, i) => {
+            const v = parsed.args[i];
+            args[inp.name || `arg${i}`] = typeof v === 'bigint' ? v.toString() : typeof v === 'object' ? JSON.stringify(v, (k, x) => (typeof x === 'bigint' ? x.toString() : x)) : v;
+          });
+          events.push({ name: parsed.name, args });
+          continue;
+        }
+      }
+      let transfer = null;
+      try {
+        transfer = TRANSFER_IFACE.parseLog(log);
+      } catch {
+        transfer = null;
+      }
+      if (transfer) {
+        const t = this._symbolOf(log.address);
+        events.push({
+          name: 'Transfer',
+          token: t?.symbol ?? log.address,
+          from: transfer.args.from,
+          to: transfer.args.to,
+          amount: t ? fromUnits(transfer.args.value, t.decimals) : transfer.args.value.toString(),
+        });
+      } else {
+        events.push({ name: 'Log', contract: log.address });
+      }
+    }
+    return {
+      hash,
+      status: rc ? (rc.status === 1 ? 'success' : 'failed') : 'pending',
+      blockNumber: rc?.blockNumber ?? null,
+      from: tx.from,
+      to: tx.to,
+      method,
+      gasUsed: rc?.gasUsed != null ? rc.gasUsed.toString() : null,
+      chainId: this.chainId,
+      network: this.network,
+      events,
+    };
+  }
+
+  /** Everything about the vault for the built-in vault page. */
+  async vaultDetails() {
+    const [snap, policy, positions, owner, agent, adapter, paused] = await Promise.all([
+      this.snapshot(),
+      this.policy(),
+      this.positions(),
+      this.vault.owner(),
+      this.vault.agent(),
+      this.vault.adapter(),
+      this.vault.paused(),
+    ]);
+    let trades = [];
+    try {
+      const latest = await this.provider.getBlockNumber();
+      // query backwards in small windows: public RPCs often reject large eth_getLogs ranges
+      let logs = [];
+      const step = 2_000;
+      for (let to = latest, i = 0; i < 25 && logs.length < 25 && to > 0; i++, to -= step) {
+        const from = Math.max(0, to - step + 1);
+        try {
+          const chunk = await this.vault.queryFilter(this.vault.filters.TradeExecuted(), from, to);
+          logs = chunk.concat(logs);
+        } catch {
+          break;
+        }
+      }
+      trades = logs.slice(-25).reverse().map((l) => {
+        const r = l.args.record;
+        const token = this._symbolOf(l.args.token);
+        return {
+          id: Number(l.args.id),
+          side: r.isBuy ? 'BUY' : 'SELL',
+          token: token?.symbol ?? l.args.token,
+          pnl: fromUnits(r.pnl, this.base.decimals),
+          votes: Number(r.votes),
+          reasoningHash: r.reasoningHash,
+          txHash: l.transactionHash,
+          blockNumber: l.blockNumber,
+        };
+      });
+    } catch {
+      trades = [];
+    }
+    return { address: this.address, network: this.network, chainId: this.chainId, owner, agent, adapter, paused, base: this.base, snap, policy, positions, trades };
   }
 
   async policy() {
