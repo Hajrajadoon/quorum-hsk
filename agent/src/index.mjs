@@ -94,6 +94,7 @@ async function main() {
       market: feed,
       llm,
       intervalMs: Math.max(5000, Number(env.LOOP_MS || 30000)),
+      warmupIntervalMs: Math.max(3000, Number(env.WARMUP_MS || 4000)),
       minTrade: Number(env.MIN_TRADE || 1),
       attestHolds: bool(env.ATTEST_HOLDS, false),
       log,

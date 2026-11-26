@@ -27,6 +27,8 @@ export class QuorumEngine {
     this.llm = o.llm ?? null;
     this.mode = o.vault.mode ?? 'sim';
     this.intervalMs = o.intervalMs ?? 2500;
+    // while the council is still collecting its first WARMUP prices, tick faster (live mode)
+    this.warmupIntervalMs = o.warmupIntervalMs ?? null;
     this.minTrade = o.minTrade ?? 5;
     this.attestHolds = o.attestHolds ?? this.mode === 'sim';
     this.historyLimit = o.historyLimit ?? 400;
@@ -80,9 +82,14 @@ export class QuorumEngine {
     const loop = async () => {
       if (!this.running) return;
       await this.tick();
-      if (this.running) this.timer = setTimeout(loop, this.intervalMs);
+      if (this.running) this.timer = setTimeout(loop, this.warmingUp() && this.warmupIntervalMs ? this.warmupIntervalMs : this.intervalMs);
     };
     this.timer = setTimeout(loop, 300);
+  }
+
+  /** true while any symbol has fewer than WARMUP prices (the council can't debate yet) */
+  warmingUp() {
+    return (this.symbols ?? []).some((s) => (this.history[s]?.length ?? 0) < WARMUP);
   }
 
   stop() {
