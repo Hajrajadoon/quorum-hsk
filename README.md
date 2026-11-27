@@ -12,6 +12,7 @@
 
 [![Website](https://img.shields.io/badge/Website-GitHub%20Pages-7C3AED?style=for-the-badge&logo=github&logoColor=white)](https://hajrajadoon.github.io/quorum-hsk/)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Try%20it-22D3A0?style=for-the-badge&logo=googlechrome&logoColor=white)](https://hajrajadoon.github.io/quorum-hsk/demo.html)
+[![Demo Video](https://img.shields.io/badge/Demo%20Video-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/4Ng4FJzmM2I)
 [![Pitch Deck](https://img.shields.io/badge/Pitch%20Deck-PDF-C17BFF?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](https://hajrajadoon.github.io/quorum-hsk/QUORUM-pitch-deck.pdf)
 ![Track](https://img.shields.io/badge/Track%201-AI%20Agent%20Trading-5B8CFF?style=for-the-badge)
 ![Chain](https://img.shields.io/badge/Chain-HSK%20Chain-8B5CF6?style=for-the-badge)
